@@ -1,0 +1,51 @@
+name: Build ShareDeal Attend
+
+# Runs on every push, and can be started manually from the Actions tab.
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # ---- Build the self-contained single-file EXE -------------------------
+      - name: Publish single-file EXE
+        run: >
+          dotnet publish ShareDealAttend/ShareDealAttend.csproj
+          -c Release -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+
+      # ---- Build the Inno Setup installer -----------------------------------
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile installer
+        run: >
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
+
+      # ---- Upload results so you can download them ---------------------------
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShareDealAttend-exe
+          path: ShareDealAttend/bin/Release/net8.0-windows/win-x64/publish/ShareDealAttend.exe
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShareDealAttend-Setup
+          path: installer/Output/*.exe
