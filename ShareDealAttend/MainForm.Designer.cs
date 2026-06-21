@@ -12,6 +12,7 @@ partial class MainForm
         {
             components?.Dispose();
             _webView?.Dispose();
+            _trayIcon?.Dispose();
         }
         base.Dispose(disposing);
     }
@@ -23,7 +24,8 @@ partial class MainForm
         this.components = new System.ComponentModel.Container();
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
         this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
-        this.ClientSize = new System.Drawing.Size(1024, 768);
+        this.ClientSize = new System.Drawing.Size(900, 600);
+        this.MinimumSize = new System.Drawing.Size(420, 320);
         this.Name = "MainForm";
         this.Text = "ShareDeal Attend";
         this.BackColor = System.Drawing.Color.White;

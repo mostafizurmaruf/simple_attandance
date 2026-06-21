@@ -20,6 +20,10 @@ public partial class MainForm : Form
     private bool _showingOffline;
     private bool _coreReady;
 
+    // Tray icon hosts the "Start with Windows" on/off toggle and Exit.
+    private NotifyIcon? _trayIcon;
+    private ToolStripMenuItem? _startupMenuItem;
+
     public MainForm(AppConfig config)
     {
         _config = config;
@@ -52,9 +56,66 @@ public partial class MainForm : Form
         }
     }
 
+    // ---- Tray icon: startup toggle + exit ----------------------------------
+
+    private void SetupTrayIcon()
+    {
+        var menu = new ContextMenuStrip();
+
+        var openItem = new ToolStripMenuItem("Open", null, (_, _) => RestoreWindow());
+
+        _startupMenuItem = new ToolStripMenuItem("Start with Windows")
+        {
+            CheckOnClick = true,
+            Checked = StartupManager.IsEnabled(),
+        };
+        _startupMenuItem.Click += StartupMenuItem_Click;
+
+        var exitItem = new ToolStripMenuItem("Exit", null, (_, _) =>
+        {
+            _allowExit = true;
+            Close();
+        });
+
+        menu.Items.Add(openItem);
+        menu.Items.Add(_startupMenuItem);
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(exitItem);
+
+        _trayIcon = new NotifyIcon
+        {
+            Icon = Icon ?? System.Drawing.SystemIcons.Application,
+            Text = "ShareDeal Attend",
+            Visible = true,
+            ContextMenuStrip = menu,
+        };
+        _trayIcon.DoubleClick += (_, _) => RestoreWindow();
+    }
+
+    private void StartupMenuItem_Click(object? sender, EventArgs e)
+    {
+        // CheckOnClick has already flipped the state by the time this fires.
+        bool enable = _startupMenuItem!.Checked;
+        if (enable)
+            StartupManager.EnsureRegistered();
+        else
+            StartupManager.Unregister();
+
+        Logger.Info($"Startup {(enable ? "enabled" : "disabled")} from tray menu.");
+    }
+
+    private void RestoreWindow()
+    {
+        Show();
+        if (WindowState == FormWindowState.Minimized)
+            WindowState = FormWindowState.Normal;
+        Activate();
+    }
+
     private async void MainForm_Load(object? sender, EventArgs e)
     {
         ApplyWindowMode();
+        SetupTrayIcon();
 
         try
         {

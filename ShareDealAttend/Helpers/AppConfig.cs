@@ -12,14 +12,16 @@ public sealed class AppConfig
 {
     public string StartUrl { get; set; } = "https://sharedealnow.com/attend/";
 
-    /// <summary>Borderless, maximized window when true.</summary>
-    public bool Fullscreen { get; set; } = true;
+    /// <summary>Borderless, maximized window when true. Default: a normal,
+    /// small, resizable window the user can maximize manually.</summary>
+    public bool Fullscreen { get; set; } = false;
 
     /// <summary>Self-register under HKCU\...\Run on every launch when true.</summary>
     public bool RegisterStartup { get; set; } = true;
 
-    /// <summary>Block user-initiated close (Alt+F4, X) when true.</summary>
-    public bool PreventAccidentalClose { get; set; } = true;
+    /// <summary>Block user-initiated close (Alt+F4, X) when true. Default off
+    /// so the window can be closed normally.</summary>
+    public bool PreventAccidentalClose { get; set; } = false;
 
     /// <summary>
     /// Optional host allow-list. When non-empty, navigations and new-window

@@ -46,6 +46,25 @@ internal static class StartupManager
         }
     }
 
+    /// <summary>
+    /// Returns true when the HKCU Run value exists and points at this EXE,
+    /// i.e. the app is currently set to start with Windows for this user.
+    /// </summary>
+    public static bool IsEnabled()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false);
+            return key?.GetValue(ValueName) is string current
+                   && !string.IsNullOrWhiteSpace(current);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("Failed to read startup entry.", ex);
+            return false;
+        }
+    }
+
     /// <summary>Removes the HKCU Run value. Best-effort.</summary>
     public static void Unregister()
     {

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading;
 using ShareDealAttend.Helpers;
 
@@ -43,9 +44,10 @@ internal static class Program
 
             var config = AppConfig.Load();
 
-            // Self-heal the per-user auto-start entry on every launch.
-            if (config.RegisterStartup)
-                StartupManager.EnsureRegistered();
+            // Apply the auto-start preference once, on first run. After that the
+            // user controls it from the tray menu ("Start with Windows") and we
+            // never override their choice on later launches.
+            SeedStartupOnFirstRun(config);
 
             Application.Run(new MainForm(config));
         }
@@ -64,6 +66,31 @@ internal static class Program
             Logger.Info("==== ShareDeal Attend exiting ====");
             _singleInstanceMutex?.ReleaseMutex();
             _singleInstanceMutex?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// On the very first launch, register (or not) for auto-start based on the
+    /// config default, then drop a marker so we never touch it again — leaving
+    /// the user's tray-menu toggle as the single source of truth afterwards.
+    /// </summary>
+    private static void SeedStartupOnFirstRun(AppConfig config)
+    {
+        try
+        {
+            var marker = Path.Combine(AppPaths.RootDir, ".startup-seeded");
+            if (File.Exists(marker))
+                return;
+
+            if (config.RegisterStartup)
+                StartupManager.EnsureRegistered();
+
+            File.WriteAllText(marker, "seeded");
+            Logger.Info($"Startup seeded on first run (RegisterStartup={config.RegisterStartup}).");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("Failed to seed startup preference on first run.", ex);
         }
     }
 }
