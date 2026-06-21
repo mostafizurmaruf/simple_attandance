@@ -24,6 +24,9 @@ public partial class MainForm : Form
     private NotifyIcon? _trayIcon;
     private ToolStripMenuItem? _startupMenuItem;
 
+    // Visible on-screen mirror of the same "Start with Windows" toggle.
+    private CheckBox? _startupCheckBox;
+
     public MainForm(AppConfig config)
     {
         _config = config;
@@ -54,6 +57,52 @@ public partial class MainForm : Form
             TopMost = false;
             ShowInTaskbar = true;
         }
+    }
+
+    // ---- On-screen startup toggle ------------------------------------------
+
+    private void SetupStartupCheckBox()
+    {
+        var bar = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 32,
+            BackColor = System.Drawing.Color.FromArgb(0xF1, 0xF5, 0xF9),
+            Padding = new Padding(8, 4, 8, 4),
+        };
+
+        _startupCheckBox = new CheckBox
+        {
+            Text = "Start with Windows",
+            AutoSize = true,
+            Checked = StartupManager.IsEnabled(),
+            Dock = DockStyle.Left,
+            TextAlign = System.Drawing.ContentAlignment.MiddleLeft,
+        };
+        _startupCheckBox.CheckedChanged += StartupCheckBox_CheckedChanged;
+
+        bar.Controls.Add(_startupCheckBox);
+        Controls.Add(bar);
+
+        // Keep the WebView at the front of the docking order so it fills the
+        // area left over below the top bar instead of overlapping it.
+        _webView.BringToFront();
+    }
+
+    private void StartupCheckBox_CheckedChanged(object? sender, EventArgs e)
+    {
+        bool enable = _startupCheckBox!.Checked;
+        if (enable)
+            StartupManager.EnsureRegistered();
+        else
+            StartupManager.Unregister();
+
+        // Mirror the change into the tray menu (no event loop: setting Checked
+        // on a menu item does not raise Click).
+        if (_startupMenuItem is not null)
+            _startupMenuItem.Checked = enable;
+
+        Logger.Info($"Startup {(enable ? "enabled" : "disabled")} from main window checkbox.");
     }
 
     // ---- Tray icon: startup toggle + exit ----------------------------------
@@ -101,6 +150,11 @@ public partial class MainForm : Form
         else
             StartupManager.Unregister();
 
+        // Keep the on-screen checkbox in sync (setting Checked to the same value
+        // is a no-op, so this won't re-trigger the registration twice).
+        if (_startupCheckBox is not null)
+            _startupCheckBox.Checked = enable;
+
         Logger.Info($"Startup {(enable ? "enabled" : "disabled")} from tray menu.");
     }
 
@@ -116,6 +170,7 @@ public partial class MainForm : Form
     {
         ApplyWindowMode();
         SetupTrayIcon();
+        SetupStartupCheckBox();
 
         try
         {
