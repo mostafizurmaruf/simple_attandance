@@ -1,7 +1,7 @@
 # ShareDeal Attend
 
 A locked-down Windows kiosk desktop app that displays
-**https://sharedealnow.com/attend/** inside Microsoft Edge **WebView2**,
+**https://domain.com/attend/** inside Microsoft Edge **WebView2**,
 runs fullscreen with no chrome, and **auto-starts with Windows**.
 
 - **Tech:** C# · .NET 8 · Windows Forms · Microsoft.Web.WebView2
