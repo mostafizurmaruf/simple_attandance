@@ -8,9 +8,9 @@ namespace ShareDealAttend.Helpers;
 /// missing file, missing keys or malformed JSON all fall back to safe defaults
 /// so the kiosk still launches and shows the attendance page.
 /// </summary>
-internal sealed class AppConfig
+public sealed class AppConfig
 {
-    public string StartUrl { get; set; } = "https://domain.com/attend/";
+    public string StartUrl { get; set; } = "https://sharedealnow.com/attend/";
 
     /// <summary>Borderless, maximized window when true.</summary>
     public bool Fullscreen { get; set; } = true;
