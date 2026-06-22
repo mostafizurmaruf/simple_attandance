@@ -92,10 +92,7 @@ public partial class MainForm : Form
     private void StartupCheckBox_CheckedChanged(object? sender, EventArgs e)
     {
         bool enable = _startupCheckBox!.Checked;
-        if (enable)
-            StartupManager.EnsureRegistered();
-        else
-            StartupManager.Unregister();
+        StartupManager.SetEnabled(enable);
 
         // Mirror the change into the tray menu (no event loop: setting Checked
         // on a menu item does not raise Click).
@@ -145,10 +142,12 @@ public partial class MainForm : Form
     {
         // CheckOnClick has already flipped the state by the time this fires.
         bool enable = _startupMenuItem!.Checked;
-        if (enable)
-            StartupManager.EnsureRegistered();
-        else
-            StartupManager.Unregister();
+        StartupManager.SetEnabled(enable);
+
+        // Keep the on-screen checkbox in sync (setting Checked to the same value
+        // is a no-op, so this won't re-trigger the registration twice).
+        if (_startupCheckBox is not null)
+            _startupCheckBox.Checked = enable;
 
         // Keep the on-screen checkbox in sync (setting Checked to the same value
         // is a no-op, so this won't re-trigger the registration twice).
