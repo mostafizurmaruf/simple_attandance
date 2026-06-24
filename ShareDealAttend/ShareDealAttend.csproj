@@ -14,8 +14,9 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <Company>ShareDeal</Company>
     <Product>ShareDeal Attend</Product>
-    <!-- Drop app.ico into this folder and uncomment to brand the EXE. -->
-    <!-- <ApplicationIcon>app.ico</ApplicationIcon> -->
+    <!-- app.ico lives in the repo root (one level up). The Condition keeps the
+         build working even if the icon file is missing. -->
+    <ApplicationIcon Condition="Exists('..\app.ico')">..\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

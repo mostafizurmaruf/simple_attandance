@@ -38,6 +38,7 @@ public partial class MainForm : Form
     {
         _config = config;
         InitializeComponent();
+        TrySetAppIcon();
 
         _webView = new WebView2 { Dock = DockStyle.Fill };
         Controls.Add(_webView);
@@ -45,6 +46,29 @@ public partial class MainForm : Form
         KeyDown += MainForm_KeyDown;
         FormClosing += MainForm_FormClosing;
         Load += MainForm_Load;
+    }
+
+    /// <summary>
+    /// Use the EXE's own icon (set via &lt;ApplicationIcon&gt; / app.ico) for the
+    /// window title bar, taskbar and tray. Falls back silently to the default
+    /// icon when no app.ico is shipped.
+    /// </summary>
+    private void TrySetAppIcon()
+    {
+        try
+        {
+            var exePath = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exePath))
+                return;
+
+            var icon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
+            if (icon is not null)
+                Icon = icon;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Could not load the app icon: {ex.Message}");
+        }
     }
 
     private void ApplyWindowMode()
