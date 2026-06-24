@@ -27,6 +27,13 @@ public partial class MainForm : Form
     // Visible on-screen mirror of the same "Start with Windows" toggle.
     private CheckBox? _startupCheckBox;
 
+    // Daily "force-show the window" scheduler.
+    private System.Windows.Forms.Timer? _reopenTimer;
+    private readonly List<TimeSpan> _reopenTimes = new();
+    // Stamp ("yyyyMMddHHmm") of the last scheduled reopen we fired, so a single
+    // scheduled minute triggers exactly once even though the timer ticks often.
+    private string _lastReopenStamp = string.Empty;
+
     public MainForm(AppConfig config)
     {
         _config = config;
@@ -165,11 +172,81 @@ public partial class MainForm : Form
         Activate();
     }
 
+    // ---- Daily reopen scheduler --------------------------------------------
+
+    private void SetupReopenSchedule()
+    {
+        _reopenTimes.Clear();
+        foreach (var raw in _config.ReopenTimes)
+        {
+            // Accept "HH:mm" (or "H:mm") 24-hour times; skip anything malformed.
+            if (TimeSpan.TryParseExact(raw?.Trim(), new[] { @"hh\:mm", @"h\:mm" },
+                    System.Globalization.CultureInfo.InvariantCulture, out var t))
+                _reopenTimes.Add(t);
+            else if (!string.IsNullOrWhiteSpace(raw))
+                Logger.Warn($"Ignoring invalid ReopenTimes entry: '{raw}'.");
+        }
+
+        if (_reopenTimes.Count == 0)
+        {
+            Logger.Info("No valid ReopenTimes configured; daily reopen disabled.");
+            return;
+        }
+
+        Logger.Info($"Daily reopen scheduled at: {string.Join(", ", _reopenTimes)}.");
+
+        // Tick every 20s so we reliably catch the target minute without busy work.
+        _reopenTimer = new System.Windows.Forms.Timer { Interval = 20_000 };
+        _reopenTimer.Tick += ReopenTimer_Tick;
+        _reopenTimer.Start();
+    }
+
+    private void ReopenTimer_Tick(object? sender, EventArgs e)
+    {
+        var now = DateTime.Now;
+        var nowHm = new TimeSpan(now.Hour, now.Minute, 0);
+        if (!_reopenTimes.Contains(nowHm))
+            return;
+
+        // Fire at most once per scheduled minute.
+        var stamp = now.ToString("yyyyMMddHHmm");
+        if (stamp == _lastReopenStamp)
+            return;
+        _lastReopenStamp = stamp;
+
+        Logger.Info($"Scheduled reopen triggered at {now:HH:mm}.");
+        ForceShowWindow();
+    }
+
+    /// <summary>
+    /// Force the kiosk back into view: un-minimise, re-apply the configured
+    /// window mode, pull it to the foreground, and reload the attendance page.
+    /// </summary>
+    private void ForceShowWindow()
+    {
+        Show();
+        ApplyWindowMode();
+
+        // Briefly assert TopMost to win the foreground even if another app had it.
+        bool wasTopMost = TopMost;
+        TopMost = true;
+        Activate();
+        BringToFront();
+        TopMost = wasTopMost;
+
+        if (_coreReady && !_showingOffline)
+        {
+            Logger.Info($"Reloading start URL on scheduled reopen: {_config.StartUrl}");
+            _webView.CoreWebView2.Navigate(_config.StartUrl);
+        }
+    }
+
     private async void MainForm_Load(object? sender, EventArgs e)
     {
         ApplyWindowMode();
         SetupTrayIcon();
         SetupStartupCheckBox();
+        SetupReopenSchedule();
 
         try
         {

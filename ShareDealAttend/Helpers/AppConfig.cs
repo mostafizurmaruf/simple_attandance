@@ -29,6 +29,14 @@ public sealed class AppConfig
     /// </summary>
     public List<string> AllowedHosts { get; set; } = new();
 
+    /// <summary>
+    /// Daily times ("HH:mm", 24-hour) at which the kiosk window is force-shown:
+    /// restored if minimized/hidden, brought to the foreground, and reloaded.
+    /// Lets the page reappear at shift times even if someone minimised it.
+    /// Empty list = feature off. Default: 06:00 and 18:00.
+    /// </summary>
+    public List<string> ReopenTimes { get; set; } = new() { "06:00", "18:00" };
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -64,6 +72,7 @@ public sealed class AppConfig
                 cfg.StartUrl = new AppConfig().StartUrl;
 
             cfg.AllowedHosts ??= new();
+            cfg.ReopenTimes ??= new();
             Logger.Info($"Config loaded. StartUrl='{cfg.StartUrl}', Fullscreen={cfg.Fullscreen}.");
             return cfg;
         }
